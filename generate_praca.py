@@ -111,45 +111,52 @@ for lvl, size in [('Heading 1', 14), ('Heading 2', 13), ('Heading 3', 12)]:
 # STRONA TYTULOWA
 # ---------------------------------------------------------------------------
 
-def center(doc, text, size=12, bold=False, italic=False, space_before=0, space_after=6):
+TITLE_FONT = 'Bookman Old Style'
+
+
+def tp_line(doc, text, size=12, bold=False, space_after=6):
+    """Linia strony tytulowej wzorowana na szablonie uczelni."""
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     pf = p.paragraph_format
-    pf.space_before = Pt(space_before)
+    pf.space_before = Pt(0)
     pf.space_after = Pt(space_after)
+    pf.line_spacing_rule = WD_LINE_SPACING.SINGLE
     r = p.add_run(text)
+    r.font.name = TITLE_FONT
+    r._element.rPr.rFonts.set(qn('w:eastAsia'), TITLE_FONT)
     r.font.size = Pt(size)
     r.bold = bold
-    r.italic = italic
     return p
 
 
-center(doc, 'Uczelnia / Wydzia\u0142', 12, space_before=6)
-center(doc, 'Kierunek: Fizjoterapia', 12, space_after=24)
+def tp_blank(doc, n=1):
+    for _ in range(n):
+        tp_line(doc, '', 12)
 
-for _ in range(3):
-    doc.add_paragraph()
 
-center(doc, 'Imi\u0119 i Nazwisko', 12, space_after=2)
-center(doc, 'Numer albumu: ........', 11, italic=True, space_after=36)
-
-center(doc, 'Zasady planowania i programowania fizjoterapii '
-            'pacjent\u00f3w z chorobami uk\u0142adu oddechowego', 18, bold=True,
-       space_before=12, space_after=10)
-center(doc, 'na przyk\u0142adzie mukowiscydozy (zw\u0142\u00f3knienia torbielowatego)',
-       14, italic=True, space_after=36)
-
-for _ in range(4):
-    doc.add_paragraph()
-
-center(doc, 'Praca zaliczeniowa', 12, italic=True, space_after=2)
-center(doc, 'napisana pod kierunkiem', 12, space_after=2)
-center(doc, 'dr / dr hab. ........................', 12, space_after=48)
-
-for _ in range(3):
-    doc.add_paragraph()
-
-center(doc, 'Miejscowo\u015b\u0107, 2026', 12)
+# Strona tytulowa odwzorowana wg dostarczonego szablonu (UR, Rzesz\u00f3w)
+tp_blank(doc, 2)
+tp_line(doc, 'Kierunek FIZJOTERAPIA', 16)
+tp_line(doc, 'STUDIA NIESTACJONARNE', 16)
+tp_blank(doc, 3)
+tp_line(doc, 'Zdrowie Publiczne', 20, bold=True)
+tp_line(doc, 'Prowadz\u0105cy: dr Weronika Cyganik', 12)
+tp_blank(doc, 3)
+tp_line(doc, 'PROJEKT SAMODZIELNY', 12)
+tp_line(doc, '1MFzZ/2024 \u2013 grupa projektowa  \u2026\u2026\u2026\u2026.', 12)
+tp_blank(doc, 3)
+tp_line(doc, 'Tytu\u0142: Zasady planowania i programowania fizjoterapii '
+             'pacjent\u00f3w z chorobami uk\u0142adu oddechowego na przyk\u0142adzie '
+             'mukowiscydozy', 20, bold=True)
+tp_blank(doc, 3)
+tp_line(doc, 'Ernest Kurdziel', 14)
+tp_line(doc, '(Imi\u0119 i nazwisko)', 14)
+tp_blank(doc, 1)
+tp_line(doc, '72714', 14)
+tp_line(doc, '(numer albumu)', 14)
+tp_blank(doc, 2)
+tp_line(doc, 'RZESZ\u00d3W 2024', 14, bold=True)
 
 doc.add_page_break()
 
