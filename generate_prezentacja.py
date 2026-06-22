@@ -7,12 +7,20 @@ z chorobami ukladu oddechowego" - na przykladzie mukowiscydozy.
 Autor: Ernest Kurdziel (album 72714), prowadzacy: dr Weronika Cyganik.
 """
 
+import os
+
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.oxml.ns import qn
+
+ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')
+
+
+def asset(name):
+    return os.path.join(ASSETS, name)
 
 
 # ---------------------------------------------------------------------------
@@ -159,58 +167,82 @@ def content_slide(title, kicker=None, bg=LIGHT):
     return slide
 
 
+def framed_picture(slide, path, x, y, w, framed=True, pad=Inches(0.12)):
+    """Wstawia obrazek (dopasowany szeroko\u015bci\u0105) w bia\u0142ej ramce na jasnym tle."""
+    from PIL import Image
+    iw, ih = Image.open(path).size
+    h = int(w * ih / iw)
+    if framed:
+        card = rect(slide, x - pad, y - pad, w + 2 * pad, Emu(h) + 2 * pad,
+                    WHITE, line=RGBColor(0xD5, 0xDE, 0xE6))
+        # cienki turkusowy akcent u gory ramki
+        rect(slide, x - pad, y - pad, w + 2 * pad, Inches(0.07), ACCENT)
+    pic = slide.shapes.add_picture(path, x, y, width=w)
+    return pic
+
+
+def side_image(slide, path, caption=None):
+    """Obrazek po prawej stronie slajdu tre\u015bci (gdy tekst jest w\u0119\u017cszy)."""
+    x = Inches(8.55)
+    w = Inches(4.05)
+    y = Inches(2.35)
+    framed_picture(slide, path, x, y, w)
+    if caption:
+        tb, tf = textbox(slide, x - Inches(0.12), Inches(6.35), w + Inches(0.24),
+                         Inches(0.5), anchor=MSO_ANCHOR.TOP)
+        p = tf.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
+        r = p.add_run(); r.text = caption
+        _set_font(r, 11, italic=True, color=GREY)
+
+
 # ---------------------------------------------------------------------------
 # 1. SLAJD TYTULOWY
 # ---------------------------------------------------------------------------
 
 slide = prs.slides.add_slide(BLANK)
 rect(slide, 0, 0, SW, SH, PRIMARY)
-# dekoracyjne pasy
-rect(slide, 0, 0, SW, Inches(0.25), ACCENT)
-rect(slide, 0, Inches(7.25), SW, Inches(0.25), ACCENT)
-rect(slide, Inches(0.0), Inches(2.55), SW, Inches(0.06), ACCENT)
-rect(slide, Inches(0.0), Inches(4.95), SW, Inches(0.06), ACCENT)
+# tlo - ilustracja pluc (navy z plucami po prawej)
+slide.shapes.add_picture(asset('img_hero.png'), 0, 0, width=SW, height=SH)
+# pionowy akcent turkusowy po lewej
+rect(slide, 0, 0, Inches(0.22), SH, ACCENT)
+rect(slide, Inches(0.55), Inches(2.55), Inches(6.6), Inches(0.05), ACCENT)
 
-# kierunek / uczelnia
-tb, tf = textbox(slide, Inches(0.8), Inches(0.7), Inches(11.7), Inches(1.6))
+# kierunek / uczelnia (do lewej)
+tb, tf = textbox(slide, Inches(0.7), Inches(0.7), Inches(8.2), Inches(1.5))
 p = tf.paragraphs[0]
-p.alignment = PP_ALIGN.CENTER
 r = p.add_run(); r.text = 'Uniwersytet Rzeszowski  \u2022  Kierunek FIZJOTERAPIA'
-_set_font(r, 18, bold=True, color=WHITE)
-p2 = tf.add_paragraph(); p2.alignment = PP_ALIGN.CENTER
+_set_font(r, 16, bold=True, color=WHITE)
+p2 = tf.add_paragraph()
 r2 = p2.add_run(); r2.text = 'Studia niestacjonarne  \u2022  Zdrowie Publiczne'
-_set_font(r2, 14, color=LIGHT)
-p3 = tf.add_paragraph(); p3.alignment = PP_ALIGN.CENTER
+_set_font(r2, 13, color=LIGHT)
+p3 = tf.add_paragraph()
 r3 = p3.add_run(); r3.text = 'Projekt samodzielny'
 _set_font(r3, 12, italic=True, color=ACCENT)
 
-# tytul glowny
-tb, tf = textbox(slide, Inches(0.9), Inches(2.8), Inches(11.5), Inches(2.0),
-                 anchor=MSO_ANCHOR.MIDDLE)
-p = tf.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
+# tytul glowny (do lewej, w lewej czesci slajdu)
+tb, tf = textbox(slide, Inches(0.65), Inches(2.75), Inches(7.7), Inches(2.3),
+                 anchor=MSO_ANCHOR.TOP)
+p = tf.paragraphs[0]
 r = p.add_run()
 r.text = 'Zasady planowania i programowania fizjoterapii pacjent\u00f3w z chorobami uk\u0142adu oddechowego'
-_set_font(r, 32, bold=True, color=WHITE)
-p2 = tf.add_paragraph(); p2.alignment = PP_ALIGN.CENTER; p2.space_before = Pt(10)
+_set_font(r, 30, bold=True, color=WHITE)
+p2 = tf.add_paragraph(); p2.space_before = Pt(10)
 r2 = p2.add_run()
 r2.text = 'na przyk\u0142adzie mukowiscydozy (zw\u0142\u00f3knienia torbielowatego)'
-_set_font(r2, 20, italic=True, color=ACCENT)
+_set_font(r2, 18, italic=True, color=ACCENT)
 
-# autor / prowadzacy
-tb, tf = textbox(slide, Inches(0.8), Inches(5.25), Inches(11.7), Inches(1.8),
-                 anchor=MSO_ANCHOR.MIDDLE)
-p = tf.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
+# autor / prowadzacy (do lewej, dol)
+tb, tf = textbox(slide, Inches(0.7), Inches(5.5), Inches(8.0), Inches(1.7),
+                 anchor=MSO_ANCHOR.TOP)
+p = tf.paragraphs[0]
 r = p.add_run(); r.text = 'Ernest Kurdziel'
 _set_font(r, 22, bold=True, color=WHITE)
-p2 = tf.add_paragraph(); p2.alignment = PP_ALIGN.CENTER
-r2 = p2.add_run(); r2.text = 'Numer albumu: 72714'
+p2 = tf.add_paragraph()
+r2 = p2.add_run(); r2.text = 'Numer albumu: 72714   \u2022   Prowadz\u0105cy: dr Weronika Cyganik'
 _set_font(r2, 14, color=LIGHT)
-p3 = tf.add_paragraph(); p3.alignment = PP_ALIGN.CENTER; p3.space_before = Pt(8)
-r3 = p3.add_run(); r3.text = 'Prowadz\u0105cy: dr Weronika Cyganik'
-_set_font(r3, 16, color=LIGHT)
-p4 = tf.add_paragraph(); p4.alignment = PP_ALIGN.CENTER; p4.space_before = Pt(6)
-r4 = p4.add_run(); r4.text = 'Rzesz\u00f3w 2024'
-_set_font(r4, 13, italic=True, color=ACCENT)
+p3 = tf.add_paragraph(); p3.space_before = Pt(6)
+r3 = p3.add_run(); r3.text = 'Rzesz\u00f3w 2024'
+_set_font(r3, 13, italic=True, color=ACCENT)
 
 
 # ---------------------------------------------------------------------------
@@ -253,15 +285,17 @@ add_bullet(tf, 'Cel pracy: przedstawienie metod badania oraz zasad planowania '
 
 slide = content_slide('Mukowiscydoza \u2013 definicja i etiologia',
                       kicker='Charakterystyka choroby')
-tf = body_frame(slide)
+tf = body_frame(slide, width=Inches(7.5))
 add_bullet(tf, 'Najcz\u0119stsza choroba genetyczna dziedziczona autosomalnie '
-               'recesywnie w populacji rasy bia\u0142ej.', first=True)
-add_bullet(tf, 'Przyczyna: mutacje genu CFTR (chromosom 7); najcz\u0119stsza \u2013 F508del.')
+               'recesywnie w populacji rasy bia\u0142ej.', first=True, size=18)
+add_bullet(tf, 'Przyczyna: mutacje genu CFTR (chromosom 7); najcz\u0119stsza \u2013 F508del.',
+           size=18)
 add_bullet(tf, 'Bia\u0142ko CFTR = kana\u0142 chlorkowy; jego dysfunkcja zaburza transport '
-               'jon\u00f3w Cl\u207b, Na\u207a i wody.')
-add_bullet(tf, 'Skutek: produkcja g\u0119stego, lepkiego \u015bluzu.')
+               'jon\u00f3w Cl\u207b, Na\u207a i wody.', size=18)
+add_bullet(tf, 'Skutek: produkcja g\u0119stego, lepkiego \u015bluzu.', size=18)
 add_bullet(tf, 'Choroba wielonarz\u0105dowa: uk\u0142ad oddechowy, trzustka, przew\u00f3d pokarmowy, '
-               'w\u0105troba, gruczo\u0142y potowe \u2013 o rokowaniu decyduje choroba p\u0142ucna.')
+               'w\u0105troba \u2013 o rokowaniu decyduje choroba p\u0142ucna.', size=18)
+side_image(slide, asset('img_dna.png'), caption='Pod\u0142o\u017ce genetyczne \u2013 mutacja genu CFTR')
 
 
 # ---------------------------------------------------------------------------
@@ -270,13 +304,17 @@ add_bullet(tf, 'Choroba wielonarz\u0105dowa: uk\u0142ad oddechowy, trzustka, prz
 
 slide = content_slide('Patofizjologia zmian w uk\u0142adzie oddechowym',
                       kicker='Charakterystyka choroby')
-tf = body_frame(slide)
-add_bullet(tf, 'Odwodnienie warstwy p\u0142ynu okrywaj\u0105cego nab\u0142onek rz\u0119skowy.', first=True)
-add_bullet(tf, 'Zag\u0119szczenie \u015bluzu \u2192 upo\u015bledzenie klirensu mukocyliarnego.')
+tf = body_frame(slide, width=Inches(7.5))
+add_bullet(tf, 'Odwodnienie warstwy p\u0142ynu okrywaj\u0105cego nab\u0142onek rz\u0119skowy.',
+           first=True, size=18)
+add_bullet(tf, 'Zag\u0119szczenie \u015bluzu \u2192 upo\u015bledzenie klirensu mukocyliarnego.', size=18)
 add_bullet(tf, 'Zalegaj\u0105ca wydzielina = po\u017cywka dla bakterii '
-               '(S. aureus, P. aeruginosa).')
-add_bullet(tf, 'B\u0142\u0119dne ko\u0142o: infekcja \u2192 zapalenie \u2192 uszkodzenie \u015bciany oskrzeli.')
-add_bullet(tf, 'Nast\u0119pstwa: rozstrzenie oskrzeli, w\u0142\u00f3knienie, post\u0119puj\u0105ca obturacja.')
+               '(S. aureus, P. aeruginosa).', size=18)
+add_bullet(tf, 'B\u0142\u0119dne ko\u0142o: infekcja \u2192 zapalenie \u2192 uszkodzenie \u015bciany oskrzeli.',
+           size=18)
+add_bullet(tf, 'Nast\u0119pstwa: rozstrzenie oskrzeli, w\u0142\u00f3knienie, post\u0119puj\u0105ca obturacja.',
+           size=18)
+side_image(slide, asset('img_lungs.png'), caption='Drzewo oskrzelowe \u2013 obszar zmian')
 
 
 # ---------------------------------------------------------------------------
@@ -308,17 +346,16 @@ add_bullet(tf, 'Wspomagaj\u0105 usuwanie zalegaj\u0105cej wydzieliny.')
 add_bullet(tf, 'Zmniejszaj\u0105 cz\u0119sto\u015b\u0107 zaostrze\u0144.')
 add_bullet(tf, 'Poprawiaj\u0105 wentylacj\u0119 p\u0142uc.')
 add_bullet(tf, 'W po\u0142\u0105czeniu z treningiem \u2013 lepsza wydolno\u015b\u0107 i jako\u015b\u0107 \u017cycia.')
-# karta z haslem
-card = rect(slide, Inches(8.5), Inches(2.0), Inches(4.2), Inches(3.6), PRIMARY)
-tb, tcf = textbox(slide, Inches(8.7), Inches(2.2), Inches(3.8), Inches(3.2),
-                  anchor=MSO_ANCHOR.MIDDLE)
-pp = tcf.paragraphs[0]; pp.alignment = PP_ALIGN.CENTER
-rr = pp.add_run(); rr.text = 'Fizjoterapia w CF'
-_set_font(rr, 18, bold=True, color=ACCENT)
-pp2 = tcf.add_paragraph(); pp2.alignment = PP_ALIGN.CENTER; pp2.space_before = Pt(10)
-rr2 = pp2.add_run()
-rr2.text = 'to nie dodatek do leczenia, lecz jego nieod\u0142\u0105czny, codzienny element \u2013 prowadzony przez ca\u0142e \u017cycie chorego.'
-_set_font(rr2, 16, color=WHITE)
+# haslo
+tb, hcf = textbox(slide, Inches(0.8), Inches(5.7), Inches(7.3), Inches(1.2))
+pp = hcf.paragraphs[0]
+rr = pp.add_run()
+rr.text = ('Fizjoterapia w CF to nie dodatek do leczenia, lecz jego '
+           'nieod\u0142\u0105czny, codzienny element \u2013 prowadzony przez ca\u0142e \u017cycie.')
+_set_font(rr, 16, bold=True, color=PRIMARY, italic=True)
+# obrazek fizjoterapii
+side_image(slide, asset('img_physio.png'),
+           caption='Fizjoterapia oddechowa \u2013 praca z pacjentem')
 
 
 # ---------------------------------------------------------------------------
@@ -489,6 +526,9 @@ add_bullet(tf, 'HFCWO \u2013 wysokocz\u0119stotliwo\u015bciowe oscylacje \u015bc
 
 slide = content_slide('Terapia inhalacyjna \u2013 kolejno\u015b\u0107',
                       kicker='Plan terapii')
+# obrazek nebulizatora wycentrowany u gory
+framed_picture(slide, asset('img_inhaler.png'),
+               x=(SW - Inches(3.5)) / 2, y=Inches(1.65), w=Inches(3.5))
 steps = [
     ('1', 'Bronchodilatator', 'lek rozszerzaj\u0105cy oskrzela'),
     ('2', 'Mukolityk', 'hipertoniczny NaCl / dornaza alfa'),
@@ -496,10 +536,10 @@ steps = [
     ('4', 'Antybiotyk wziewny', 'po skutecznym oczyszczeniu'),
 ]
 n = len(steps)
-bw = Inches(2.85); bh = Inches(2.6); gap = Inches(0.25)
+bw = Inches(2.85); bh = Inches(2.1); gap = Inches(0.25)
 total = bw * n + gap * (n - 1)
 startx = (SW - total) / 2
-y = Inches(2.6)
+y = Inches(4.4)
 for i, (num, title, sub) in enumerate(steps):
     bx = startx + i * (bw + gap)
     rect(slide, bx, y, bw, bh, WHITE, line=RGBColor(0xD5, 0xDE, 0xE6))
@@ -529,14 +569,18 @@ for i, (num, title, sub) in enumerate(steps):
 # ---------------------------------------------------------------------------
 
 slide = content_slide('Trening fizyczny', kicker='Plan terapii')
-tf = body_frame(slide)
-add_bullet(tf, 'Uzupe\u0142nienie (nie zamiennik!) technik oczyszczania oskrzeli.', first=True)
+tf = body_frame(slide, width=Inches(7.5))
+add_bullet(tf, 'Uzupe\u0142nienie (nie zamiennik!) technik oczyszczania oskrzeli.',
+           first=True, size=18)
 add_bullet(tf, 'Wytrzyma\u0142o\u015bciowy (aerobowy): marsz, bieg, rower, p\u0142ywanie \u2013 '
-               '3\u20135 \u00d7/tydz., 20\u201340 min, 60\u201380% HRmax.')
+               '3\u20135 \u00d7/tydz., 20\u201340 min, 60\u201380% HRmax.', size=18)
 add_bullet(tf, 'Oporowy (si\u0142owy): 2\u20133 \u00d7/tydz., g\u0142\u00f3wne grupy mi\u0119\u015bniowe i mi\u0119\u015bnie '
-               'posturalne.')
-add_bullet(tf, 'Trening mi\u0119\u015bni oddechowych (IMT) \u2013 u wybranych pacjent\u00f3w.')
-add_bullet(tf, '\u0106wiczenia rozci\u0105gaj\u0105ce i mobilizacja klatki piersiowej \u2013 korekcja postawy.')
+               'posturalne.', size=18)
+add_bullet(tf, 'Trening mi\u0119\u015bni oddechowych (IMT) \u2013 u wybranych pacjent\u00f3w.', size=18)
+add_bullet(tf, '\u0106wiczenia rozci\u0105gaj\u0105ce i mobilizacja klatki piersiowej \u2013 korekcja '
+               'postawy.', size=18)
+side_image(slide, asset('img_exercise.png'),
+           caption='Trening aerobowy poprawia wydolno\u015b\u0107')
 
 
 # ---------------------------------------------------------------------------
