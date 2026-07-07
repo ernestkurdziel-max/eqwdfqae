@@ -580,43 +580,47 @@ articles = [
 ]
 
 
-def biblio_item(tf, n, text, first=False):
+def biblio_item(tf, n, text, first=False, size=12.5, space_after=8):
     p = tf.paragraphs[0] if (first and not tf.paragraphs[0].runs) else tf.add_paragraph()
-    p.space_after = Pt(10); p.line_spacing = 1.05
-    r = p.add_run(); set_run(r, f"{n}.  ", 15, CORAL, bold=True)
-    r = p.add_run(); set_run(r, text, 14.5, DARK)
+    p.space_after = Pt(space_after); p.line_spacing = 1.02
+    r = p.add_run(); set_run(r, f"{n}.  ", size + 0.5, CORAL, bold=True)
+    r = p.add_run(); set_run(r, text, size, DARK)
 
 
-# Slajd 20 — książki
+# ============================================================
+# SLAJD 20 — BIBLIOGRAFIA (jeden slajd)
+# ============================================================
 s = add_slide()
-header(s, "Bibliografia (1/2)", "Książki i podręczniki", 20)
-tf = textbox(s, 0.75, 1.85, 11.85, 5.0)
-lbl = tf.paragraphs[0].add_run(); set_run(lbl, "Pozycje książkowe", 16, TEAL, bold=True)
+header(s, "Bibliografia", "Wykaz literatury", 20)
+# --- lewa kolumna: książki ---
+lt = textbox(s, 0.7, 1.7, 6.15, 0.4)
+r = lt.paragraphs[0].add_run(); set_run(r, "Książki i podręczniki", 15, TEAL, bold=True)
+tf = textbox(s, 0.7, 2.15, 6.15, 4.6)
 n = 1
-for b in books + books2:
-    biblio_item(tf, n, b)
+for i, b in enumerate(books + books2):
+    biblio_item(tf, n, b, first=(i == 0))
     n += 1
-
-# Slajd 21 — artykuły
-s = add_slide()
-header(s, "Bibliografia (2/2)", "Artykuły naukowe i źródła internetowe", 21)
-tf = textbox(s, 0.75, 1.85, 11.85, 4.2)
-lbl = tf.paragraphs[0].add_run()
-set_run(lbl, "Artykuły naukowe (dostępne m.in. w bazach PubMed / Google Scholar)", 16, TEAL, bold=True)
-for a in articles:
-    biblio_item(tf, n, a)
+# --- prawa kolumna: artykuły ---
+rt = textbox(s, 7.05, 1.7, 5.6, 0.7)
+r = rt.paragraphs[0].add_run()
+set_run(r, "Artykuły naukowe", 15, TEAL, bold=True)
+p = rt.add_paragraph()
+r = p.add_run(); set_run(r, "(dostępne m.in. w bazach PubMed / Google Scholar)", 11, GRAY, italic=True)
+tf2 = textbox(s, 7.05, 2.55, 5.6, 2.6)
+for i, a in enumerate(articles):
+    biblio_item(tf2, n, a, first=(i == 0))
     n += 1
-note = rect(s, 0.75, 5.9, 11.85, 0.85, MINT, shape=MSO_SHAPE.ROUNDED_RECTANGLE)
-note.adjustments[0] = 0.1
+note = rect(s, 7.05, 5.35, 5.6, 1.35, MINT, shape=MSO_SHAPE.ROUNDED_RECTANGLE)
+note.adjustments[0] = 0.08
 ntf = note.text_frame; ntf.word_wrap = True
-ntf.margin_left = Inches(0.2); ntf.margin_right = Inches(0.2); ntf.margin_top = Inches(0.1)
+ntf.margin_left = Inches(0.18); ntf.margin_right = Inches(0.18); ntf.margin_top = Inches(0.1)
 r = ntf.paragraphs[0].add_run()
 set_run(r, "Uwaga: przed cytowaniem w pracy zaleca się zweryfikowanie pełnych danych "
            "bibliograficznych (rok, tom, strony) w katalogu biblioteki oraz w bazach naukowych.",
         11.5, TEAL, italic=True)
 
 # ============================================================
-# SLAJD 22 — ZAKOŃCZENIE
+# SLAJD 21 — ZAKOŃCZENIE
 # ============================================================
 s = add_slide()
 s.shapes.add_picture(img("bg_closing.png"), 0, 0, Inches(SW), Inches(SH))

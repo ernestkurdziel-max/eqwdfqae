@@ -7,9 +7,9 @@ funkcjonalne oraz przegląd wybranych metod usprawniania.
 ## Plik do pobrania
 
 - **`Mozgowe_porazenie_dzieciece_metody_fizjoterapii.pptx`** — gotowa prezentacja
-  PowerPoint (22 slajdy, format 16:9).
+  PowerPoint (21 slajdów, format 16:9).
 
-## Zawartość (22 slajdy)
+## Zawartość (21 slajdów)
 
 1. Slajd tytułowy
 2. Cel i zakres pracy
@@ -30,9 +30,8 @@ funkcjonalne oraz przegląd wybranych metod usprawniania.
 17. Integracja sensoryczna (SI)
 18. Zestawienie metod
 19. Wnioski
-20. Bibliografia — książki
-21. Bibliografia — artykuły
-22. Zakończenie
+20. Bibliografia (książki i artykuły — na jednym slajdzie)
+21. Zakończenie
 
 > **Uwaga terminologiczna:** temat opracowano jako *mózgowe (dziecięce) porażenie
 > mózgowe* (ang. *cerebral palsy*), ponieważ to właśnie w tej jednostce chorobowej
