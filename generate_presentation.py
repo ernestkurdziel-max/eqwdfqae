@@ -7,12 +7,19 @@ Generator prezentacji PowerPoint:
 Przedmiot: Kliniczne podstawy fizjoterapii w pulmonologii
 """
 
+import os
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.oxml.ns import qn
+
+IMG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
+
+
+def img(name):
+    return os.path.join(IMG_DIR, name)
 
 # ---------------------------------------------------------------------------
 # Paleta kolorow (motyw pulmonologiczny - odcienie blekitu i zieleni)
@@ -74,6 +81,75 @@ def add_round_rect(slide, x, y, w, h, color, line_color=None):
         shape.line.width = Pt(1.25)
     shape.shadow.inherit = False
     return shape
+
+
+def _send_to_back(shape):
+    sp = shape._element
+    parent = sp.getparent()
+    parent.remove(sp)
+    parent.insert(2, sp)
+
+
+def add_oval(slide, x, y, w, h, color, line_color=None):
+    shape = slide.shapes.add_shape(MSO_SHAPE.OVAL, x, y, w, h)
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = color
+    if line_color is None:
+        shape.line.fill.background()
+    else:
+        shape.line.color.rgb = line_color
+        shape.line.width = Pt(1)
+    shape.shadow.inherit = False
+    return shape
+
+
+def add_gradient_bg(slide, c1, c2, angle=45):
+    """Pelnoslajdowe subtelne tlo gradientowe."""
+    shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, SLIDE_W, SLIDE_H)
+    shape.line.fill.background()
+    shape.shadow.inherit = False
+    shape.fill.gradient()
+    stops = shape.fill.gradient_stops
+    stops[0].color.rgb = c1
+    stops[0].position = 0.0
+    stops[1].color.rgb = c2
+    stops[1].position = 1.0
+    try:
+        shape.fill.gradient_angle = angle
+    except Exception:
+        pass
+    _send_to_back(shape)
+    return shape
+
+
+def add_decor(slide):
+    """Delikatne ozdobne kola tematyczne w tle (za trescia)."""
+    c1 = RGBColor(0xDD, 0xEF, 0xF1)
+    c2 = RGBColor(0xE8, 0xF5, 0xF0)
+    o1 = add_oval(slide, Inches(10.7), Inches(4.7), Inches(3.6), Inches(3.6), c1)
+    o2 = add_oval(slide, Inches(-1.1), Inches(5.2), Inches(2.6), Inches(2.6), c2)
+    _send_to_back(o1)
+    _send_to_back(o2)
+
+
+def add_image_card(slide, x, y, w, h, image_path, caption=None,
+                   frame=True, caption_color=NAVY):
+    """Ramka z ilustracja (kwadratowa) i opcjonalnym podpisem."""
+    if frame:
+        add_round_rect(slide, x, y, w, h, WHITE,
+                       line_color=RGBColor(0xD5, 0xE3, 0xE6))
+    cap_h = Inches(0.5) if caption else Inches(0.0)
+    margin = Inches(0.18)
+    avail_w = w - margin * 2
+    avail_h = h - cap_h - margin * 2
+    side = min(int(avail_w), int(avail_h))
+    px = x + (w - side) // 2
+    py = y + margin + (int(avail_h) - side) // 2
+    slide.shapes.add_picture(image_path, px, py, width=side, height=side)
+    if caption:
+        add_text(slide, x + Inches(0.1), y + h - cap_h, w - Inches(0.2), cap_h,
+                 caption, size=12.5, color=caption_color, italic=True,
+                 align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
 
 
 def add_text(slide, x, y, w, h, text, size=18, color=DARK_TEXT, bold=False,
@@ -164,7 +240,9 @@ def add_footer(slide):
 
 def content_slide(title, subtitle=None, bg=LIGHT_BG):
     s = add_slide()
-    set_bg(s, bg)
+    set_bg(s, WHITE)
+    add_gradient_bg(s, RGBColor(0xFF, 0xFF, 0xFF), RGBColor(0xE8, 0xF4, 0xF6), 60)
+    add_decor(s)
     add_header(s, title, subtitle)
     add_footer(s)
     return s
@@ -188,20 +266,30 @@ def card(slide, x, y, w, h, title, body_items, title_color=WHITE,
 # ===========================================================================
 s = add_slide()
 set_bg(s, NAVY)
-# ozdobne pasy
+# ozdobne pasy i kola tematyczne
+add_oval(s, Inches(8.4), Inches(-1.6), Inches(6.5), Inches(6.5),
+         RGBColor(0x0F, 0x4A, 0x6E))
+add_oval(s, Inches(10.9), Inches(4.3), Inches(3.4), Inches(3.4),
+         RGBColor(0x11, 0x55, 0x7C))
 add_rect(s, 0, Inches(5.55), SLIDE_W, Inches(1.95), RGBColor(0x0A, 0x30, 0x4C))
 add_rect(s, 0, Inches(5.45), SLIDE_W, Inches(0.12), TEAL)
 add_rect(s, Inches(0.0), 0, Inches(0.28), SLIDE_H, TEAL)
 
-add_text(s, Inches(0.9), Inches(0.55), Inches(11.5), Inches(0.5),
+# ilustracja pluc w okraglej ramce po prawej stronie
+add_oval(s, Inches(8.55), Inches(1.15), Inches(3.95), Inches(3.95),
+         LIGHT_TEAL)
+add_image_card(s, Inches(8.62), Inches(1.22), Inches(3.8), Inches(3.8),
+               img("img_lungs.png"), frame=False)
+
+add_text(s, Inches(0.9), Inches(0.55), Inches(9.5), Inches(0.5),
          "KLINICZNE PODSTAWY FIZJOTERAPII W PULMONOLOGII",
          size=16, color=LIGHT_TEAL, bold=True)
-add_text(s, Inches(0.9), Inches(1.75), Inches(11.5), Inches(2.3),
-         "Zasady planowania i programowania\nfizjoterapii pacjentów z chorobami\nukładu oddechowego",
-         size=34, color=WHITE, bold=True, line_spacing=1.05)
+add_text(s, Inches(0.9), Inches(1.7), Inches(7.5), Inches(2.5),
+         "Zasady planowania i programowania fizjoterapii pacjentów z chorobami układu oddechowego",
+         size=32, color=WHITE, bold=True, line_spacing=1.05)
 
-add_round_rect(s, Inches(0.9), Inches(4.35), Inches(5.6), Inches(0.85), TEAL)
-add_text(s, Inches(1.05), Inches(4.35), Inches(5.4), Inches(0.85),
+add_round_rect(s, Inches(0.9), Inches(4.4), Inches(5.9), Inches(0.85), TEAL)
+add_text(s, Inches(1.05), Inches(4.4), Inches(5.7), Inches(0.85),
          "Jednostka chorobowa: ASTMA OSKRZELOWA",
          size=18, color=WHITE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
 
@@ -344,28 +432,37 @@ card(s, Inches(8.8), Inches(1.5), Inches(3.9), Inches(5.0),
 # SLAJD 6 - PATOFIZJOLOGIA
 # ===========================================================================
 s = content_slide("Patofizjologia", "Mechanizmy obturacji oskrzeli")
-add_bullets(s, Inches(0.6), Inches(1.6), Inches(6.0), Inches(4.8), [
+add_round_rect(s, Inches(0.55), Inches(1.55), Inches(5.15), Inches(4.95), WHITE,
+               line_color=RGBColor(0xD5, 0xE3, 0xE6))
+add_bullets(s, Inches(0.8), Inches(1.8), Inches(4.7), Inches(4.5), [
     "Przewlekłe zapalenie ściany oskrzeli",
     ("Naciek eozynofilów, limfocytów Th2, mastocytów", 1),
-    ("Uwalnianie mediatorów: histamina, leukotrieny, cytokiny", 1),
+    ("Mediatory: histamina, leukotrieny, cytokiny", 1),
     "Skurcz mięśni gładkich oskrzeli (bronchospazm)",
     "Obrzęk błony śluzowej dróg oddechowych",
-    "Nadmierne wydzielanie gęstego śluzu (czopy śluzowe)",
+    "Nadmierne wydzielanie gęstego śluzu",
     "Nadreaktywność oskrzeli na bodźce",
     "Remodeling (przebudowa) ścian oskrzeli",
-    ("Włóknienie podnabłonkowe, przerost mięśni – zmiany utrwalone", 1),
-], size=16, space_after=8)
-add_round_rect(s, Inches(6.9), Inches(1.6), Inches(5.8), Inches(4.8), LIGHT_TEAL)
-add_text(s, Inches(7.15), Inches(1.8), Inches(5.3), Inches(0.5),
-         "Skutki czynnościowe", size=17, color=NAVY, bold=True)
-add_bullets(s, Inches(7.2), Inches(2.45), Inches(5.3), Inches(3.8), [
-    "Zwężenie światła oskrzeli → wzrost oporu w drogach oddechowych",
-    "Ograniczenie przepływu wydechowego (spadek FEV1, PEF)",
-    "Rozdęcie płuc (hiperinflacja), pułapka powietrzna",
+    ("Włóknienie, przerost mięśni – zmiany utrwalone", 1),
+], size=15, space_after=7)
+
+add_round_rect(s, Inches(5.9), Inches(1.55), Inches(6.9), Inches(4.95), WHITE,
+               line_color=RGBColor(0xD5, 0xE3, 0xE6))
+s.shapes.add_picture(img("img_bronchi.png"), Inches(6.15), Inches(1.9),
+                     height=Inches(2.55), width=Inches(2.55))
+add_text(s, Inches(5.95), Inches(4.5), Inches(3.0), Inches(0.7),
+         "Oskrzele prawidłowe i objęte skurczem oraz zapaleniem",
+         size=11.5, color=GREY_TEXT, italic=True, align=PP_ALIGN.CENTER)
+add_text(s, Inches(9.0), Inches(1.9), Inches(3.6), Inches(0.5),
+         "Skutki czynnościowe", size=16, color=NAVY, bold=True)
+add_bullets(s, Inches(9.0), Inches(2.5), Inches(3.65), Inches(3.9), [
+    "Zwężenie światła oskrzeli",
+    "Wzrost oporu w drogach oddechowych",
+    "Spadek FEV1 i PEF",
+    "Rozdęcie płuc (hiperinflacja)",
     "Wzrost pracy oddechowej i duszność",
-    "Zaburzenia stosunku wentylacja/perfuzja → hipoksemia",
-    "Odwracalność – kluczowa cecha różnicująca z POChP",
-], size=15, space_after=9)
+    "Odwracalność obturacji",
+], size=13.5, space_after=8)
 
 # ===========================================================================
 # SLAJD 7 - OBRAZ KLINICZNY
@@ -443,31 +540,34 @@ add_text(s, Inches(0.9), Inches(5.6), Inches(11.5), Inches(0.95),
 # SLAJD 9 - DIAGNOSTYKA LEKARSKA
 # ===========================================================================
 s = content_slide("Diagnostyka – rozpoznanie lekarskie")
-add_bullets(s, Inches(0.6), Inches(1.6), Inches(6.0), Inches(4.9), [
-    "Wywiad – charakterystyczne, zmienne objawy",
+add_round_rect(s, Inches(0.55), Inches(1.55), Inches(4.9), Inches(4.95), WHITE,
+               line_color=RGBColor(0xD5, 0xE3, 0xE6))
+add_bullets(s, Inches(0.78), Inches(1.78), Inches(4.45), Inches(4.6), [
+    "Wywiad – charakterystyczne objawy",
     "Badanie przedmiotowe – osłuchiwanie",
     "Spirometria z próbą rozkurczową",
     ("Obturacja: FEV1/FVC poniżej normy", 1),
-    ("Odwracalność: wzrost FEV1 ≥ 12% i ≥ 200 ml po leku rozkurczowym", 1),
-    "Pomiar szczytowego przepływu wydechowego (PEF)",
+    ("Wzrost FEV1 ≥ 12% i ≥ 200 ml po leku", 1),
+    "Szczytowy przepływ wydechowy (PEF)",
     ("Zmienność dobowa PEF > 10%", 1),
     "Testy prowokacyjne (metacholina, wysiłek)",
     "Testy alergiczne (skórne, IgE swoiste)",
-    "Ocena stanu zapalnego – FeNO, eozynofilia",
-], size=15, space_after=6)
-add_round_rect(s, Inches(6.9), Inches(1.6), Inches(5.8), Inches(4.9), LIGHT_TEAL)
-add_text(s, Inches(7.15), Inches(1.8), Inches(5.3), Inches(0.5),
-         "Spirometria – kluczowe parametry", size=16, color=NAVY, bold=True)
-add_bullets(s, Inches(7.2), Inches(2.4), Inches(5.3), Inches(3.9), [
-    "FEV1 – natężona objętość wydechowa pierwszosekundowa",
+    "Stan zapalny – FeNO, eozynofilia",
+], size=13.5, space_after=6)
+
+add_round_rect(s, Inches(5.6), Inches(1.55), Inches(3.7), Inches(4.95), LIGHT_TEAL)
+add_text(s, Inches(5.8), Inches(1.75), Inches(3.3), Inches(0.5),
+         "Spirometria – parametry", size=15, color=NAVY, bold=True)
+add_bullets(s, Inches(5.82), Inches(2.35), Inches(3.35), Inches(3.9), [
+    "FEV1 – natężona objętość pierwszosekundowa",
     "FVC – natężona pojemność życiowa",
-    "FEV1/FVC – wskaźnik Tiffeneau (obturacja)",
-    "PEF – szczytowy przepływ wydechowy (monitorowanie domowe)",
-    "MEF – maksymalne przepływy wydechowe (małe oskrzela)",
-], size=15, space_after=10)
-add_text(s, Inches(7.2), Inches(5.85), Inches(5.3), Inches(0.6),
-         "Rozpoznanie stawia lekarz – fizjoterapeuta wykorzystuje wyniki w planowaniu terapii.",
-         size=12, color=GREY_TEXT, italic=True)
+    "FEV1/FVC – wskaźnik Tiffeneau",
+    "PEF – szczytowy przepływ wydechowy",
+    "MEF – przepływy w małych oskrzelach",
+], size=12.5, space_after=10)
+
+add_image_card(s, Inches(9.45), Inches(1.55), Inches(3.35), Inches(4.95),
+               img("img_spirometry.png"), caption="Badanie czynnościowe płuc")
 
 # ===========================================================================
 # SLAJD 10 - METODY BADANIA PACJENTA (wprowadzenie / wywiad)
@@ -672,27 +772,33 @@ for name, items, color in groups:
 # SLAJD 16 - CWICZENIA ODDECHOWE
 # ===========================================================================
 s = content_slide("Ćwiczenia oddechowe (breathing retraining)")
-add_bullets(s, Inches(0.6), Inches(1.6), Inches(6.0), Inches(4.9), [
+add_round_rect(s, Inches(0.55), Inches(1.55), Inches(5.0), Inches(4.95), WHITE,
+               line_color=RGBColor(0xD5, 0xE3, 0xE6))
+add_bullets(s, Inches(0.78), Inches(1.78), Inches(4.55), Inches(4.6), [
     "Oddychanie przeponowe (torem brzusznym)",
-    ("Angażowanie przepony, redukcja pracy oddechowej", 1),
-    "Oddychanie przez „zasznurowane usta” (pursed-lip breathing)",
-    ("Wydłużenie wydechu, przeciwdziałanie zapadaniu oskrzeli", 1),
-    "Kontrola tempa i rytmu oddechu (spowolnienie)",
+    ("Angażowanie przepony, mniejsza praca oddechowa", 1),
+    "Oddychanie przez „zasznurowane usta”",
+    ("Wydłużenie wydechu, drożność oskrzeli", 1),
+    "Kontrola tempa i rytmu oddechu",
     "Metoda Butejki – redukcja hiperwentylacji",
     "Ćwiczenia wg techniki Papworth",
-    "Elementy jogi i ćwiczeń relaksacyjnych oddechu",
+    "Elementy jogi i relaksacji oddechu",
     "Ćwiczenia rozprężające dolne partie płuc",
-], size=15, space_after=6)
-add_round_rect(s, Inches(6.9), Inches(1.6), Inches(5.8), Inches(4.9), LIGHT_TEAL)
-add_text(s, Inches(7.15), Inches(1.8), Inches(5.3), Inches(0.5),
-         "Efekty i dowody naukowe", size=16, color=NAVY, bold=True)
-add_bullets(s, Inches(7.2), Inches(2.4), Inches(5.3), Inches(3.9), [
-    "Poprawa kontroli objawów i jakości życia (przegląd Cochrane, Santino i wsp. 2020)",
-    "Redukcja objawów lęku i hiperwentylacji",
-    "Zmniejszenie zużycia leków doraźnych",
-    "Poprawa wzorca oddechowego i tolerancji wysiłku",
-    "Techniki oddechowe zalecane jako uzupełnienie farmakoterapii (GINA)",
-], size=15, space_after=10)
+], size=13.5, space_after=6)
+
+add_round_rect(s, Inches(5.7), Inches(1.55), Inches(3.7), Inches(4.95), LIGHT_TEAL)
+add_text(s, Inches(5.9), Inches(1.75), Inches(3.3), Inches(0.5),
+         "Efekty i dowody", size=15, color=NAVY, bold=True)
+add_bullets(s, Inches(5.92), Inches(2.35), Inches(3.35), Inches(4.0), [
+    "Poprawa kontroli objawów i jakości życia (Cochrane, Santino i wsp. 2020)",
+    "Redukcja lęku i hiperwentylacji",
+    "Mniejsze zużycie leków doraźnych",
+    "Lepszy wzorzec oddechowy",
+    "Zalecane jako uzupełnienie leczenia (GINA)",
+], size=12.5, space_after=9)
+
+add_image_card(s, Inches(9.55), Inches(1.55), Inches(3.25), Inches(4.95),
+               img("img_breathing.png"), caption="Oddychanie przeponowe")
 
 # ===========================================================================
 # SLAJD 17 - TRENING MIESNI ODDECHOWYCH + OCZYSZCZANIE
@@ -721,7 +827,9 @@ card(s, Inches(6.8), Inches(1.55), Inches(5.9), Inches(4.9),
 # SLAJD 18 - TRENING FIZYCZNY / REHABILITACJA
 # ===========================================================================
 s = content_slide("Trening fizyczny i rehabilitacja pulmonologiczna")
-add_bullets(s, Inches(0.6), Inches(1.6), Inches(6.0), Inches(4.9), [
+add_round_rect(s, Inches(0.55), Inches(1.55), Inches(5.0), Inches(4.95), WHITE,
+               line_color=RGBColor(0xD5, 0xE3, 0xE6))
+add_bullets(s, Inches(0.78), Inches(1.78), Inches(4.55), Inches(4.6), [
     "Trening aerobowy (wytrzymałościowy):",
     ("Marsz, nordic walking, rower, pływanie", 1),
     ("Poprawa wydolności krążeniowo-oddechowej", 1),
@@ -729,19 +837,23 @@ add_bullets(s, Inches(0.6), Inches(1.6), Inches(6.0), Inches(4.9), [
     ("Wzmacnianie dużych grup mięśniowych", 1),
     ("Przeciwdziałanie skutkom steroidoterapii", 1),
     "Ćwiczenia ogólnousprawniające i rozciągające",
-    "Rozgrzewka i wychłodzenie – ważne w astmie wysiłkowej",
-    "Stopniowa progresja obciążeń, monitoring objawów",
-], size=15, space_after=6)
-add_round_rect(s, Inches(6.9), Inches(1.6), Inches(5.8), Inches(4.9), LIGHT_TEAL)
-add_text(s, Inches(7.15), Inches(1.8), Inches(5.3), Inches(0.5),
-         "Korzyści z treningu fizycznego", size=16, color=NAVY, bold=True)
-add_bullets(s, Inches(7.2), Inches(2.4), Inches(5.3), Inches(3.9), [
-    "Wzrost wydolności fizycznej i tolerancji wysiłku (Cochrane, Carson i wsp. 2013)",
+    "Rozgrzewka i wychłodzenie (astma wysiłkowa)",
+    "Stopniowa progresja obciążeń",
+], size=13.5, space_after=6)
+
+add_round_rect(s, Inches(5.7), Inches(1.55), Inches(3.7), Inches(4.95), LIGHT_TEAL)
+add_text(s, Inches(5.9), Inches(1.75), Inches(3.3), Inches(0.5),
+         "Korzyści z treningu", size=15, color=NAVY, bold=True)
+add_bullets(s, Inches(5.92), Inches(2.35), Inches(3.35), Inches(4.0), [
+    "Wzrost wydolności i tolerancji wysiłku (Cochrane, Osadnik i wsp. 2022)",
     "Zmniejszenie duszności wysiłkowej",
-    "Poprawa jakości życia i samopoczucia",
-    "Redukcja objawów astmy i częstości zaostrzeń",
-    "Aktywność fizyczna jest bezpieczna w dobrze kontrolowanej astmie",
-], size=15, space_after=10)
+    "Poprawa jakości życia",
+    "Redukcja objawów i zaostrzeń",
+    "Bezpieczna przy dobrej kontroli astmy",
+], size=12.5, space_after=9)
+
+add_image_card(s, Inches(9.55), Inches(1.55), Inches(3.25), Inches(4.95),
+               img("img_training.png"), caption="Trening wytrzymałościowy")
 
 # ===========================================================================
 # SLAJD 19 - ASTMA WYSILKOWA
@@ -773,25 +885,31 @@ card(s, Inches(6.8), Inches(3.05), Inches(5.9), Inches(3.4),
 # SLAJD 20 - EDUKACJA PACJENTA
 # ===========================================================================
 s = content_slide("Edukacja pacjenta i profilaktyka")
-add_bullets(s, Inches(0.6), Inches(1.6), Inches(6.0), Inches(4.9), [
+add_round_rect(s, Inches(0.55), Inches(1.55), Inches(5.0), Inches(4.95), WHITE,
+               line_color=RGBColor(0xD5, 0xE3, 0xE6))
+add_bullets(s, Inches(0.78), Inches(1.8), Inches(4.55), Inches(4.6), [
     "Wiedza o chorobie i mechanizmie objawów",
-    "Rozpoznawanie i unikanie czynników wyzwalających",
+    "Unikanie czynników wyzwalających",
     "Prawidłowa technika inhalacji leków",
-    "Samokontrola – pomiar PEF, dzienniczek objawów",
-    "Rozpoznawanie objawów zaostrzenia (plan działania)",
-    "Znaczenie systematycznej aktywności fizycznej",
-    "Techniki radzenia sobie z dusznością i lękiem",
+    "Samokontrola – pomiar PEF, dzienniczek",
+    "Rozpoznawanie objawów zaostrzenia",
+    "Systematyczna aktywność fizyczna",
+    "Radzenie sobie z dusznością i lękiem",
     "Kontrola masy ciała, zaprzestanie palenia",
-], size=16, space_after=8)
-add_round_rect(s, Inches(6.9), Inches(1.6), Inches(5.8), Inches(4.9), LIGHT_TEAL)
-add_text(s, Inches(7.15), Inches(1.8), Inches(5.3), Inches(0.5),
-         "Pisemny plan działania w astmie", size=16, color=NAVY, bold=True)
-add_bullets(s, Inches(7.2), Inches(2.45), Inches(5.3), Inches(3.9), [
+], size=13.5, space_after=8)
+
+add_round_rect(s, Inches(5.7), Inches(1.55), Inches(3.7), Inches(4.95), LIGHT_TEAL)
+add_text(s, Inches(5.9), Inches(1.75), Inches(3.3), Inches(0.5),
+         "Plan działania w astmie", size=15, color=NAVY, bold=True)
+add_bullets(s, Inches(5.92), Inches(2.35), Inches(3.35), Inches(4.0), [
     "Strefa zielona – astma kontrolowana, kontynuacja leczenia",
-    "Strefa żółta – narastanie objawów, modyfikacja leków wg zaleceń",
-    "Strefa czerwona – zaostrzenie, pilny kontakt z lekarzem / pomoc doraźna",
-    "Edukacja zwiększa współpracę (compliance) i skuteczność terapii",
-], size=15, space_after=12, bullet_color=NAVY)
+    "Strefa żółta – narastanie objawów, modyfikacja leków",
+    "Strefa czerwona – zaostrzenie, pilny kontakt z lekarzem",
+    "Edukacja zwiększa skuteczność terapii",
+], size=12.5, space_after=10, bullet_color=NAVY)
+
+add_image_card(s, Inches(9.55), Inches(1.55), Inches(3.25), Inches(4.95),
+               img("img_inhaler.png"), caption="Technika inhalacji leku")
 
 # ===========================================================================
 # SLAJD 21 - FIZJOTERAPIA W ZAOSTRZENIU vs STABILNA
@@ -960,37 +1078,48 @@ add_bullets(s, Inches(0.7), Inches(1.55), Inches(12.0), Inches(5.2), [
 # ===========================================================================
 # SLAJD 27 - BIBLIOGRAFIA
 # ===========================================================================
-s = content_slide("Bibliografia", "Piśmiennictwo naukowe (PubMed / Google Scholar) i podręczniki")
+s = content_slide("Bibliografia", "Polskie piśmiennictwo naukowe (PubMed / Google Scholar) i podręczniki")
+add_text(s, Inches(0.55), Inches(1.4), Inches(6.0), Inches(0.4),
+         "Podręczniki i rozdziały", size=15, color=NAVY, bold=True)
 refs_left = [
-    "1. Global Initiative for Asthma (GINA). Global Strategy for Asthma Management and Prevention. 2023. www.ginasthma.org",
-    "2. Santino TA, Chaves GSS, Freitas DA, Fregonezi GAF, Mendonça KMPP. Breathing exercises for adults with asthma. "
-    "Cochrane Database Syst Rev. 2020;3:CD001277.",
-    "3. Bruton A, Lee A, Yardley L, et al. Physiotherapy breathing retraining for asthma: a randomised controlled trial. "
-    "Lancet Respir Med. 2018;6(1):19–28.",
-    "4. Carson KV, Chandratilleke MG, Picot J, et al. Physical training for asthma. Cochrane Database Syst Rev. "
-    "2013;(9):CD001116.",
-    "5. Freitas DA, Holloway EA, Bruno SS, et al. Breathing exercises for adults with asthma. "
-    "Cochrane Database Syst Rev. 2013;(10):CD001277.",
+    "1. Woźniewski M. (red.). Fizjoterapia w chorobach wewnętrznych. "
+    "Wydawnictwo Lekarskie PZWL, Warszawa.",
+    "2. Rosławski A., Woźniewski M. Fizjoterapia oddechowa. "
+    "Wydawnictwo AWF we Wrocławiu, Wrocław.",
+    "3. Kwolek A. (red.). Rehabilitacja medyczna. "
+    "Edra Urban & Partner, Wrocław.",
+    "4. Rowińska-Zakrzewska E., Kuś J. (red.). Choroby układu "
+    "oddechowego. Wydawnictwo Lekarskie PZWL, Warszawa.",
+    "5. Durmała J. Rehabilitacja pacjentów z chorobą płuc. "
+    "W: Antczak A. (red.). Wielka Interna – Pulmonologia. "
+    "Medical Tribune Polska, Warszawa.",
 ]
+add_text(s, Inches(6.85), Inches(1.4), Inches(6.0), Inches(0.4),
+         "Artykuły naukowe i wytyczne", size=15, color=NAVY, bold=True)
 refs_right = [
-    "6. Thomas M, Bruton A. Breathing exercises for asthma. Breathe. 2014;10(4):312–322.",
-    "7. Hough A. Physiotherapy in Respiratory and Cardiac Care: An Evidence-Based Approach. "
-    "Cengage Learning, 2014.",
-    "8. Woźniewski M. (red.). Fizjoterapia w chorobach wewnętrznych. Wyd. Lekarskie PZWL, Warszawa 2021.",
-    "9. Rosławski A., Woźniewski M. Fizjoterapia oddechowa. AWF Wrocław.",
-    "10. Kwolek A. (red.). Rehabilitacja medyczna. Edra Urban & Partner, Wrocław.",
-    "11. Bott J. i wsp. Guidelines for the physiotherapy management of the adult, medical, spontaneously breathing "
-    "patient. Thorax. 2009;64(Suppl 1):i1–i52.",
+    "6. Radzimińska A., Kozłowska S., Strojek K. i wsp. Kompleksowa "
+    "fizjoterapia w astmie oskrzelowej – przegląd literatury. "
+    "Journal of Education, Health and Sport. 2016;6(10):53–67.",
+    "7. Gawlik R., Wróbel-Rajzer M., Tukaj M. Rehabilitacja oddechowa "
+    "w astmie oskrzelowej. Alergoprofil. 2011;7(3):10–13.",
+    "8. Kielnar R., Kużdżał A. Rehabilitacja w chorobach płuc. "
+    "Praktyczna Fizjoterapia i Rehabilitacja. 2010;7:37–41.",
+    "9. Global Initiative for Asthma (GINA). Światowa strategia "
+    "rozpoznawania, leczenia i prewencji astmy. Aktualizacja 2023 "
+    "(wyd. pol. Medycyna Praktyczna).",
+    "10. Osadnik CR, Gleeson C, McDonald VM, Holland AE. Pulmonary "
+    "rehabilitation versus usual care for adults with asthma. "
+    "Cochrane Database Syst Rev. 2022;8:CD013485.",
 ]
-add_round_rect(s, Inches(0.5), Inches(1.45), Inches(6.15), Inches(5.15), WHITE,
+add_round_rect(s, Inches(0.5), Inches(1.85), Inches(6.15), Inches(4.75), WHITE,
                line_color=RGBColor(0xD5, 0xE3, 0xE6))
-add_round_rect(s, Inches(6.8), Inches(1.45), Inches(6.05), Inches(5.15), WHITE,
+add_round_rect(s, Inches(6.8), Inches(1.85), Inches(6.05), Inches(4.75), WHITE,
                line_color=RGBColor(0xD5, 0xE3, 0xE6))
-add_bullets(s, Inches(0.75), Inches(1.65), Inches(5.7), Inches(4.8),
-            refs_left, size=12.5, space_after=11, bullet_color=NAVY,
+add_bullets(s, Inches(0.75), Inches(2.05), Inches(5.7), Inches(4.4),
+            refs_left, size=12.5, space_after=12, bullet_color=NAVY,
             line_spacing=1.05)
-add_bullets(s, Inches(7.05), Inches(1.65), Inches(5.6), Inches(4.8),
-            refs_right, size=12.5, space_after=11, bullet_color=NAVY,
+add_bullets(s, Inches(7.05), Inches(2.05), Inches(5.6), Inches(4.4),
+            refs_right, size=12, space_after=10, bullet_color=NAVY,
             line_spacing=1.05)
 
 # ===========================================================================
@@ -998,14 +1127,20 @@ add_bullets(s, Inches(7.05), Inches(1.65), Inches(5.6), Inches(4.8),
 # ===========================================================================
 s = add_slide()
 set_bg(s, NAVY)
-add_rect(s, 0, Inches(3.05), SLIDE_W, Inches(0.1), TEAL)
-add_text(s, Inches(1.0), Inches(2.15), Inches(11.3), Inches(1.0),
+add_oval(s, Inches(-1.6), Inches(-1.8), Inches(4.6), Inches(4.6),
+         RGBColor(0x0F, 0x4A, 0x6E))
+add_oval(s, Inches(10.6), Inches(4.7), Inches(4.4), Inches(4.4),
+         RGBColor(0x0F, 0x4A, 0x6E))
+add_image_card(s, Inches(5.57), Inches(0.55), Inches(2.2), Inches(2.2),
+               img("img_lungs.png"), frame=False)
+add_rect(s, 0, Inches(3.55), SLIDE_W, Inches(0.1), TEAL)
+add_text(s, Inches(1.0), Inches(2.6), Inches(11.3), Inches(0.9),
          "Dziękuję za uwagę", size=44, color=WHITE, bold=True,
          align=PP_ALIGN.CENTER)
-add_text(s, Inches(1.0), Inches(3.35), Inches(11.3), Inches(0.6),
+add_text(s, Inches(1.0), Inches(3.85), Inches(11.3), Inches(0.6),
          "Zasady planowania i programowania fizjoterapii – Astma oskrzelowa",
          size=18, color=LIGHT_TEAL, align=PP_ALIGN.CENTER)
-add_text(s, Inches(1.0), Inches(4.15), Inches(11.3), Inches(0.6),
+add_text(s, Inches(1.0), Inches(4.6), Inches(11.3), Inches(0.6),
          "Kliniczne podstawy fizjoterapii w pulmonologii",
          size=15, color=RGBColor(0x9F, 0xC9, 0xD1), align=PP_ALIGN.CENTER)
 
